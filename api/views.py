@@ -52,20 +52,21 @@ class CreateUserAPIView(APIView):
             User.objects.create(**user_credentials)
         except IntegrityError:
             # most probably it's already existing username but u don't want to spoil such info
-            return Response('Something went wrong.', status=status.HTTP_400_BAD_REQUEST)
+            return Response("Something went wrong.", status=status.HTTP_400_BAD_REQUEST)
         return Response({"User created"}, status=status.HTTP_201_CREATED)
 
 
 class CategoryViewset(
-    mixins.RetrieveModelMixin,
-    mixins.CreateModelMixin,
-    mixins.ListModelMixin,
-    viewsets.GenericViewSet,
+    CustomCreateMixin,
+    viewsets.ModelViewSet,
 ):
 
-    queryset = Category.objects.order_by("name")
     serializer_class = CategorySerializer
     pagination_class = CustomPaginator
+    model_class = Category
+
+    def get_queryset(self):
+        return Category.objects.filter(user_id=self.request.user.pk).order_by("name")
 
 
 class BudgetViewSet(CustomCreateMixin, viewsets.ModelViewSet):

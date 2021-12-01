@@ -11,6 +11,9 @@ class TimestampAbstractModel(models.Model):
 
 class Category(TimestampAbstractModel):
     name = models.CharField(max_length=255)
+    user = models.ForeignKey(
+        User, related_name="user_categories", on_delete=models.CASCADE
+    )
 
     def __str__(self):
         return self.name

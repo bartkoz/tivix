@@ -17,6 +17,7 @@ class CategoryFactory(factory.django.DjangoModelFactory):
         model = Category
 
     name = factory.Faker("sentence", nb_words=2)
+    user = factory.SubFactory(UserFactory)
 
 
 class BudgetFactory(factory.django.DjangoModelFactory):

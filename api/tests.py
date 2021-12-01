@@ -1,6 +1,5 @@
 import random
 import string
-from collections import OrderedDict
 from unittest import TestCase
 
 from django.contrib.auth.models import User
@@ -16,7 +15,7 @@ from api.factories import (
 )
 from api.filters import CategoryFilter
 from api.models import Budget, BudgetEntry
-from api.serializers import CreateUserSerializer, CategorySerializer, BudgetSerializer, BudgetDetailSerializer
+from api.serializers import CreateUserSerializer, CategorySerializer, BudgetSerializer
 
 
 class APITests(TestCase):
@@ -86,7 +85,7 @@ class APITests(TestCase):
         self.assertEqual(Budget.objects.get(pk=budget.pk).name, budget.name)
 
     def test_create_budget_endpoint(self):
-        category = CategoryFactory.create()
+        category = CategoryFactory.create(user=self.user)
         data = {"category": category.pk, "name": "test"}
         count = Budget.objects.count()
         self.client.force_authenticate(self.user)
@@ -145,7 +144,9 @@ class APITests(TestCase):
             data=data,
         )
         self.assertEqual(r.status_code, 404)
-        self.assertEqual(BudgetEntry.objects.get(pk=budget_entry.pk).name, budget_entry.name)
+        self.assertEqual(
+            BudgetEntry.objects.get(pk=budget_entry.pk).name, budget_entry.name
+        )
 
     def test_budget_entries_delete(self):
         self.client.force_authenticate(self.user)
@@ -156,7 +157,7 @@ class APITests(TestCase):
             reverse("api:budget_entries-detail", kwargs={"pk": budget_entry.pk})
         )
         self.assertEqual(r.status_code, 204)
-        self.assertEqual(BudgetEntry.objects.count(), count-1)
+        self.assertEqual(BudgetEntry.objects.count(), count - 1)
 
     def test_budget_entries_delete_unowned(self):
         self.client.force_authenticate(self.user)
@@ -171,42 +172,50 @@ class APITests(TestCase):
 
 
 class FilterTests(TestCase):
-
     def test_category_filter(self):
         budget = BudgetFactory.create()
         checkup = budget.category.name
-        expected_count = Budget.objects.filter(category__name__icontains=checkup).count()
-        filter_obj = CategoryFilter(data={"category": checkup}, queryset=Budget.objects.all())
+        expected_count = Budget.objects.filter(
+            category__name__icontains=checkup
+        ).count()
+        filter_obj = CategoryFilter(
+            data={"category": checkup}, queryset=Budget.objects.all()
+        )
         self.assertEqual(filter_obj.qs.count(), expected_count)
 
 
 class SerializerTests(TestCase):
-
     def test_user_serializer_different_passwords(self):
-        data = {'password1': 'password123456789',
-                'password2': "password987654321",
-                'username': "".join(random.choice(string.ascii_letters) for i in range(15))}
+        data = {
+            "password1": "password123456789",
+            "password2": "password987654321",
+            "username": "".join(random.choice(string.ascii_letters) for i in range(15)),
+        }
         serializer = CreateUserSerializer(data=data)
         self.assertRaises(ValidationError, serializer.is_valid, raise_exception=True)
 
     def test_user_serializer_same_passwords(self):
-        data = {'password1': 'password123456789',
-                'password2': "password123456789",
-                'username': "".join(random.choice(string.ascii_letters) for i in range(15))}
+        data = {
+            "password1": "password123456789",
+            "password2": "password123456789",
+            "username": "".join(random.choice(string.ascii_letters) for i in range(15)),
+        }
         serializer = CreateUserSerializer(data=data)
         self.assertTrue(serializer.is_valid())
 
     def test_category_serializer(self):
         cat = CategoryFactory.create()
         serializer = CategorySerializer(cat)
-        self.assertEqual(serializer.data, {'name': cat.name, 'id': cat.pk})
+        self.assertEqual(serializer.data, {"name": cat.name, "id": cat.pk})
 
     def test_budget_entry_serializer(self):
         be = BudgetEntryFactory.create()
         serializer = CategorySerializer(be)
-        self.assertEqual(serializer.data, {'name': be.name, 'id': be.pk})
+        self.assertEqual(serializer.data, {"name": be.name, "id": be.pk})
 
     def test_budget_serializer(self):
         budget = BudgetFactory.create()
         serializer = BudgetSerializer(budget)
-        self.assertEqual(serializer.data, {'category': budget.category_id, 'name': budget.name})
+        self.assertEqual(
+            serializer.data, {"category": budget.category_id, "name": budget.name}
+        )

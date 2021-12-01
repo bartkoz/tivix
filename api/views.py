@@ -1,4 +1,5 @@
 from django.contrib.auth.models import User
+from django.db import IntegrityError
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import mixins, viewsets, status
 from rest_framework.permissions import IsAuthenticated
@@ -47,7 +48,11 @@ class CreateUserAPIView(APIView):
             "password": serializer["password1"],
             "username": serializer["username"],
         }
-        User.objects.create(**user_credentials)
+        try:
+            User.objects.create(**user_credentials)
+        except IntegrityError:
+            # most probably it's already existing username but u don't want to spoil such info
+            return Response('Something went wrong.', status=status.HTTP_400_BAD_REQUEST)
         return Response({"User created"}, status=status.HTTP_201_CREATED)
 
 

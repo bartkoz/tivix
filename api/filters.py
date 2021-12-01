@@ -1,6 +1,6 @@
 import django_filters
 
-from api.models import Budget, Category
+from api.models import Budget
 
 
 class CategoryFilter(django_filters.FilterSet):

@@ -14,7 +14,7 @@ from api.factories import (
     BudgetEntryFactory,
 )
 from api.filters import CategoryFilter
-from api.models import Budget, BudgetEntry
+from api.models import Budget, BudgetEntry, Category
 from api.serializers import CreateUserSerializer, CategorySerializer, BudgetSerializer
 
 
@@ -42,12 +42,6 @@ class APITests(TestCase):
         r = self.client.get(reverse("api:budget-list"))
         self.assertEqual(r.status_code, 403)
 
-    def test_budget_list_endpoint(self):
-        user = UserFactory.create()
-        self.client.force_authenticate(user=user)
-        r = self.client.get(reverse("api:budget-list"))
-        self.assertEqual(r.status_code, 200)
-
     def test_budget_list_only_list_budgets_belonging_to_user(self):
         user2 = UserFactory.create()
         BudgetFactory(user=self.user)
@@ -74,7 +68,7 @@ class APITests(TestCase):
         self.assertEqual(r.status_code, 200)
         self.assertEqual(Budget.objects.get(pk=budget.pk).name, "diffname")
 
-    def test_update_budget_endpoint(self):
+    def test_update_budget_endpoint_failing(self):
         budget = BudgetFactory.create()
         self.client.force_authenticate(user=self.user)
         data = {"name": "diffname"}
@@ -169,6 +163,62 @@ class APITests(TestCase):
         )
         self.assertEqual(r.status_code, 404)
         self.assertEqual(BudgetEntry.objects.count(), count)
+
+    def test_category_list_only_list_categories_belonging_to_user(self):
+        user2 = UserFactory.create()
+        CategoryFactory(user=self.user)
+        # create few more budgets that belong to someone else
+        for i in range(3):
+            CategoryFactory(user=user2)
+        self.client.force_authenticate(user=self.user)
+        r = self.client.get(reverse("api:category-list"))
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(len(r.json()["results"]), self.user.user_categories.count())
+
+    def test_category_detail_endpoint(self):
+        category = CategoryFactory.create(user=self.user)
+        self.client.force_authenticate(user=self.user)
+        r = self.client.get(reverse("api:category-detail", kwargs={"pk": category.pk}))
+        self.assertEqual(r.status_code, 200)
+
+    def test_update_category_endpoint(self):
+        category = CategoryFactory.create(user=self.user)
+        self.client.force_authenticate(user=self.user)
+        data = {"name": "diffname"}
+        r = self.client.patch(
+            reverse("api:category-detail", kwargs={"pk": category.pk}), data=data
+        )
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(Category.objects.get(pk=category.pk).name, "diffname")
+
+    def test_update_category_endpoint_failing(self):
+        category = CategoryFactory.create()
+        self.client.force_authenticate(user=self.user)
+        data = {"name": "diffname"}
+        r = self.client.patch(
+            reverse("api:category-detail", kwargs={"pk": category.pk}), data=data
+        )
+        self.assertEqual(r.status_code, 404)
+        self.assertEqual(Category.objects.get(pk=category.pk).name, category.name)
+
+    def test_create_category_endpoint(self):
+        category = CategoryFactory.create(user=self.user)
+        data = {"category": category.pk, "name": "test"}
+        count = Category.objects.count()
+        self.client.force_authenticate(self.user)
+        r = self.client.post(reverse("api:category-list"), data=data)
+        self.assertEqual(r.status_code, 201)
+        self.assertEqual(Category.objects.count(), count + 1)
+
+    def test_delete_category_endpoint(self):
+        self.client.force_authenticate(self.user)
+        category = CategoryFactory.create(user=self.user)
+        count = Category.objects.count()
+        r = self.client.delete(
+            reverse("api:category-detail", kwargs={"pk": category.pk})
+        )
+        self.assertEqual(r.status_code, 204)
+        self.assertEqual(Category.objects.count(), count - 1)
 
 
 class FilterTests(TestCase):

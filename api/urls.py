@@ -6,7 +6,7 @@ from api import views
 category_router = SimpleRouter()
 category_router.register(
     r"category",
-    views.CreateRetrieveListCategoryViewset,
+    views.CategoryViewset,
     basename="category",
 )
 
@@ -24,10 +24,10 @@ budget_entries_router.register(
     basename="budget_entries",
 )
 
-
+app_name = "api"
 urlpatterns = (
     [
-        path("user/", views.CreateUserAPIView.as_view()),
+        path("user/", views.CreateUserAPIView.as_view(), name="create_user"),
     ]
     + category_router.urls
     + budget_router.urls

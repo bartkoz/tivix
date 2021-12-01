@@ -36,9 +36,6 @@ class BudgetEntry(TimestampAbstractModel):
     value = models.DecimalField(max_digits=10, decimal_places=2)
     type = models.CharField(max_length=3, choices=Types.choices)
     budget = models.ForeignKey(Budget, related_name="entries", on_delete=models.CASCADE)
-    user = models.ForeignKey(
-        User, related_name="user_entries", on_delete=models.CASCADE
-    )
 
     def __str__(self):
         return self.name

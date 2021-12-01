@@ -22,6 +22,13 @@ class CategorySerializer(serializers.ModelSerializer):
 
 
 class BudgetEntrySerializer(serializers.ModelSerializer):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        context = kwargs.get("context")
+        if context:
+            user = kwargs["context"]["request"].user
+            self.fields["budget"].queryset = Budget.objects.filter(user_id=user.pk)
+
     class Meta:
         model = BudgetEntry
         fields = ("name", "type", "value", "id", "budget")
@@ -40,7 +47,7 @@ class BudgetDetailSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Budget
-        fields = ("category", "entries", "name", "id")
+        fields = ("name", "category", "entries", "id")
 
     def get_category(self, obj):
         return obj.category.name
